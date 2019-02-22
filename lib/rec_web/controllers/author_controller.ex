@@ -12,11 +12,12 @@ defmodule RecWeb.AuthorController do
   end
 
   def create(conn, %{"author" => author_params}) do
-    with {:ok, %Author{} = author} <- Accounts.create_author(author_params) do
+    with {:ok, %Author{id: id} = author} <- Accounts.create_author(author_params) do
+      {:ok, token, _} = Rec.Token.sign(id)
       conn
       |> put_status(:created)
       |> put_resp_header("location", Routes.author_path(conn, :show, author))
-      |> render("show.json", author: author)
+      |> render("create.json", %{author: author, token: token})
     end
   end
 
