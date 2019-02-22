@@ -15,6 +15,7 @@ defmodule Rec.Accounts.Author do
   def changeset(author, attrs) do
     author
     |> cast(attrs, [:first_name, :last_name, :age])
+    |> validate_number(:age, greater_than: 12)
     |> validate_required([:first_name, :last_name, :age])
   end
 end
