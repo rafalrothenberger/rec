@@ -54,3 +54,5 @@ config :rec, Rec.Repo,
   database: "rec_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :joken, default_signer: "kEmvSKY3VFxr79isfgqJ830IWzVQ_6hdCPpiH5Pp2BI"

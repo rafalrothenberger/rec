@@ -16,3 +16,5 @@ config :rec, Rec.Repo,
   database: "rec_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :joken, default_signer: "kEmvSKY3VFxr79isfgqJ830IWzVQ_6hdCPpiH5Pp2BI"
