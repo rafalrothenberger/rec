@@ -35,7 +35,11 @@ defmodule RecWeb.AuthorControllerTest do
   describe "create author" do
     test "renders author when data is valid", %{conn: conn} do
       conn = post(conn, Routes.author_path(conn, :create), author: @create_attrs)
-      assert %{"id" => id} = json_response(conn, 201)["data"]
+      assert %{"data" => %{"id" => id}, "token" => token} = json_response(conn, 201)
+
+      {:ok, test_token, _} = Rec.Token.sign(id)
+
+      assert test_token == token
 
       conn = get(conn, Routes.author_path(conn, :show, id))
 
