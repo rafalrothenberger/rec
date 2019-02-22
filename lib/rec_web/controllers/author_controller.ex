@@ -6,11 +6,6 @@ defmodule RecWeb.AuthorController do
 
   action_fallback RecWeb.FallbackController
 
-  def index(conn, _params) do
-    authors = Accounts.list_authors()
-    render(conn, "index.json", authors: authors)
-  end
-
   def create(conn, %{"author" => author_params}) do
     with {:ok, %Author{id: id} = author} <- Accounts.create_author(author_params) do
       {:ok, token, _} = Rec.Token.sign(id)
@@ -31,14 +26,6 @@ defmodule RecWeb.AuthorController do
 
     with {:ok, %Author{} = author} <- Accounts.update_author(author, author_params) do
       render(conn, "show.json", author: author)
-    end
-  end
-
-  def delete(conn, %{"id" => id}) do
-    author = Accounts.get_author!(id)
-
-    with {:ok, %Author{}} <- Accounts.delete_author(author) do
-      send_resp(conn, :no_content, "")
     end
   end
 end
