@@ -76,6 +76,14 @@ defmodule RecWeb.AuthorControllerTest do
       conn = put(conn, Routes.author_path(conn, :update, author), %{author: @invalid_attrs, token: token})
       assert json_response(conn, 422)["errors"] != %{}
     end
+
+    test "block updating other authors", %{conn: conn, author: %{id: id} = author} do
+      {:ok, author: other_author} = create_author(nil)
+      {:ok, token, _} = Rec.Token.sign(other_author.id)
+
+      conn = put(conn, Routes.author_path(conn, :update, author), %{author: @update_attrs, token: token})
+      assert response(conn, 401)
+    end
   end
 
   describe "unauthorized tests" do
