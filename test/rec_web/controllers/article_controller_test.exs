@@ -2,7 +2,13 @@ defmodule RecWeb.ArticleControllerTest do
   use RecWeb.ConnCase
 
   alias Rec.Articles
-  alias Rec.Articles.Article
+  alias Rec.Accounts
+
+  @author_attrs %{
+    first_name: "fn",
+    last_name: "ln",
+    age: 13
+  }
 
   @create_attrs %{
     body: "some body",
@@ -10,17 +16,19 @@ defmodule RecWeb.ArticleControllerTest do
     published_date: "2010-04-17T14:00:00Z",
     title: "some title"
   }
-  @update_attrs %{
-    body: "some updated body",
-    description: "some updated description",
-    published_date: "2011-05-18T15:01:01Z",
-    title: "some updated title"
-  }
   @invalid_attrs %{body: nil, description: nil, published_date: nil, title: nil}
 
   def fixture(:article) do
-    {:ok, article} = Articles.create_article(@create_attrs)
-    article
+    {:ok, author} = Accounts.create_author(@author_attrs)
+    {:ok, token, _} = Rec.Token.sign(author.id)
+    {:ok, article} = Articles.create_article(@create_attrs, author.id)
+    {article, token}
+  end
+
+  def fixture(:token) do
+    {:ok, author} = Accounts.create_author(@author_attrs)
+    {:ok, token, _} = Rec.Token.sign(author.id)
+    token
   end
 
   setup %{conn: conn} do
@@ -29,53 +37,28 @@ defmodule RecWeb.ArticleControllerTest do
 
   describe "index" do
     test "lists all articles", %{conn: conn} do
-      conn = get(conn, Routes.article_path(conn, :index))
+      token = fixture(:token)
+      conn = get(conn, Routes.article_path(conn, :index), token: token)
       assert json_response(conn, 200)["data"] == []
     end
   end
 
   describe "create article" do
     test "renders article when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.article_path(conn, :create), article: @create_attrs)
-      assert %{"id" => id} = json_response(conn, 201)["data"]
-
-      conn = get(conn, Routes.article_path(conn, :show, id))
-
+      token = fixture(:token)
+      conn = post(conn, Routes.article_path(conn, :create), %{article: @create_attrs, token: token})
       assert %{
-               "id" => id,
-               "body" => "some body",
-               "description" => "some description",
-               "published_date" => "2010-04-17T14:00:00Z",
-               "title" => "some title"
-             } = json_response(conn, 200)["data"]
+        "id" => id,
+        "body" => "some body",
+        "description" => "some description",
+        "published_date" => "2010-04-17T14:00:00Z",
+        "title" => "some title"
+      } = json_response(conn, 201)["data"]
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.article_path(conn, :create), article: @invalid_attrs)
-      assert json_response(conn, 422)["errors"] != %{}
-    end
-  end
-
-  describe "update article" do
-    setup [:create_article]
-
-    test "renders article when data is valid", %{conn: conn, article: %Article{id: id} = article} do
-      conn = put(conn, Routes.article_path(conn, :update, article), article: @update_attrs)
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
-
-      conn = get(conn, Routes.article_path(conn, :show, id))
-
-      assert %{
-               "id" => id,
-               "body" => "some updated body",
-               "description" => "some updated description",
-               "published_date" => "2011-05-18T15:01:01Z",
-               "title" => "some updated title"
-             } = json_response(conn, 200)["data"]
-    end
-
-    test "renders errors when data is invalid", %{conn: conn, article: article} do
-      conn = put(conn, Routes.article_path(conn, :update, article), article: @invalid_attrs)
+      token = fixture(:token)
+      conn = post(conn, Routes.article_path(conn, :create), %{article: @invalid_attrs, token: token})
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -83,18 +66,20 @@ defmodule RecWeb.ArticleControllerTest do
   describe "delete article" do
     setup [:create_article]
 
-    test "deletes chosen article", %{conn: conn, article: article} do
-      conn = delete(conn, Routes.article_path(conn, :delete, article))
+    test "deletes chosen article", %{conn: conn, article: article, token: token} do
+      conn = delete(conn, Routes.article_path(conn, :delete, article), token: token)
       assert response(conn, 204)
+    end
 
-      assert_error_sent 404, fn ->
-        get(conn, Routes.article_path(conn, :show, article))
-      end
+    test "deletes only own articles", %{conn: conn, article: article, token: _token} do
+      token = fixture(:token)
+      conn = delete(conn, Routes.article_path(conn, :delete, article), token: token)
+      assert response(conn, 401)
     end
   end
 
   defp create_article(_) do
-    article = fixture(:article)
-    {:ok, article: article}
+    {article, token} = fixture(:article)
+    {:ok, %{article: article, token: token}}
   end
 end
