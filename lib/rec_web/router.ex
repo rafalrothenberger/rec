@@ -10,5 +10,6 @@ defmodule RecWeb.Router do
     pipe_through :api
 
     resources "/authors", AuthorController, except: [:new, :edit]
+    resources "/articles", ArticleController, except: [:new, :edit]
   end
 end
