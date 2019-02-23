@@ -77,7 +77,7 @@ defmodule RecWeb.AuthorControllerTest do
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "block updating other authors", %{conn: conn, author: %{id: id} = author} do
+    test "block updating other authors", %{conn: conn, author: %{id: _id} = author} do
       {:ok, author: other_author} = create_author(nil)
       {:ok, token, _} = Rec.Token.sign(other_author.id)
 

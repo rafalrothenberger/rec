@@ -78,6 +78,26 @@ defmodule RecWeb.ArticleControllerTest do
     end
   end
 
+  describe "unauthorized test for articles" do
+    setup [:create_article]
+
+    test "lists all articles", %{conn: conn} do
+      conn = get(conn, Routes.article_path(conn, :index))
+      assert json_response(conn, 401)
+    end
+
+    test "create article", %{conn: conn} do
+      conn = post(conn, Routes.article_path(conn, :create), %{article: @create_attrs})
+      assert response(conn, 401)
+    end
+
+    test "deletes chosen article", %{conn: conn, article: article} do
+      conn = delete(conn, Routes.article_path(conn, :delete, article))
+      assert response(conn, 401)
+    end
+
+  end
+
   defp create_article(_) do
     {article, token} = fixture(:article)
     {:ok, %{article: article, token: token}}
