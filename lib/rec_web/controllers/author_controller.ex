@@ -21,11 +21,18 @@ defmodule RecWeb.AuthorController do
     render(conn, "show.json", author: author)
   end
 
-  def update(conn, %{"id" => id, "author" => author_params}) do
-    author = Accounts.get_author!(id)
+  def update(%Plug.Conn{assigns: %{author_id: author_id}} = conn, %{"id" => id, "author" => author_params}) do
+    if "#{author_id}" == id do
+      author = Accounts.get_author!(id)
 
-    with {:ok, %Author{} = author} <- Accounts.update_author(author, author_params) do
-      render(conn, "show.json", author: author)
+      with {:ok, %Author{} = author} <- Accounts.update_author(author, author_params) do
+        render(conn, "show.json", author: author)
+      end
+    else
+      conn
+      |> put_status(:unauthorized)
+      |> put_view(RecWeb.ErrorView)
+      |> render(:"401")
     end
   end
 end
