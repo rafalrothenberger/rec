@@ -3,6 +3,7 @@ defmodule RecWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Rec.Plug.AuthorizeRequest, []
   end
 
   scope "/api", RecWeb do

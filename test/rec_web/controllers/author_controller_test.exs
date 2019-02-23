@@ -34,7 +34,7 @@ defmodule RecWeb.AuthorControllerTest do
 
       assert test_token == token
 
-      conn = get(conn, Routes.author_path(conn, :show, id))
+      conn = get(conn, Routes.author_path(conn, :show, id), token: token)
 
       assert %{
                "id" => id,
@@ -54,10 +54,13 @@ defmodule RecWeb.AuthorControllerTest do
     setup [:create_author]
 
     test "renders author when data is valid", %{conn: conn, author: %Author{id: id} = author} do
-      conn = put(conn, Routes.author_path(conn, :update, author), author: @update_attrs)
+
+      {:ok, token, _} = Rec.Token.sign(id)
+
+      conn = put(conn, Routes.author_path(conn, :update, author), %{author: @update_attrs, token: token})
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
-      conn = get(conn, Routes.author_path(conn, :show, id))
+      conn = get(conn, Routes.author_path(conn, :show, id), token: token)
 
       assert %{
                "id" => id,
@@ -67,10 +70,42 @@ defmodule RecWeb.AuthorControllerTest do
              } = json_response(conn, 200)["data"]
     end
 
-    test "renders errors when data is invalid", %{conn: conn, author: author} do
-      conn = put(conn, Routes.author_path(conn, :update, author), author: @invalid_attrs)
+    test "renders errors when data is invalid", %{conn: conn, author: %{id: id} = author} do
+      {:ok, token, _} = Rec.Token.sign(id)
+
+      conn = put(conn, Routes.author_path(conn, :update, author), %{author: @invalid_attrs, token: token})
       assert json_response(conn, 422)["errors"] != %{}
     end
+  end
+
+  describe "unauthorized tests" do
+
+    setup [:create_author]
+
+    test "check unauthorized for updating author", %{conn: conn, author: %Author{id: id} = author} do
+
+      {:ok, token, _} = Rec.Token.sign(id)
+
+      conn = put(conn, Routes.author_path(conn, :update, author), %{author: @update_attrs})
+      assert %{"errors" => %{"detail" => "Unauthorized"}} = json_response(conn, 401)
+
+      conn = get(conn, Routes.author_path(conn, :show, id), token: token)
+
+      assert %{
+               "id" => id,
+               "age" => 42,
+               "first_name" => "some first_name",
+               "last_name" => "some last_name"
+             } = json_response(conn, 200)["data"]
+    end
+
+    test "check unauthorized for showing author", %{conn: conn, author: %Author{id: id}} do
+
+      conn = get(conn, Routes.author_path(conn, :show, id))
+
+      assert %{"errors" => %{"detail" => "Unauthorized"}} = json_response(conn, 401)
+    end
+
   end
 
   defp create_author(_) do
